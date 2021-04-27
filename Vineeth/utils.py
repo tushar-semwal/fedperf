@@ -51,7 +51,9 @@ def plot_accuracy(path, dataset):
                         plt.ylabel("Test Accuracy")
 
                         plt.tight_layout()
-                        plt.savefig(f"plots/local_rounds_accuracy_{experiment}_{local_round}.svg", format="svg", dpi=1000)
+                        plt.savefig(
+                            f"plots/local_rounds_accuracy_{experiment}_{local_round}.svg", format="svg", dpi=1000
+                        )
             plt.show()
 
 
@@ -108,7 +110,11 @@ def plot_accuracy_stacked_error_bar_plot(path, dataset):
 
                 plt.grid(True)
                 plt.errorbar(
-                    np.arange(len(key_list)), np.array(final_acc_mean_list), np.array(final_acc_std_list), fmt="ok", lw=3
+                    np.arange(len(key_list)),
+                    np.array(final_acc_mean_list),
+                    np.array(final_acc_std_list),
+                    fmt="ok",
+                    lw=3,
                 )
                 plt.errorbar(
                     np.arange(len(key_list)),
@@ -128,7 +134,11 @@ def plot_accuracy_stacked_error_bar_plot(path, dataset):
                 plt.ylabel("Test Accuracy")
 
                 plt.tight_layout()
-                plt.savefig(f"plots/local_rounds_accuracy_stacked_{dataset}_{exp_match.lstrip()}_{local_round}.svg", format="svg", dpi=1000)
+                plt.savefig(
+                    f"plots/local_rounds_accuracy_stacked_{dataset}_{exp_match.lstrip()}_{local_round}.svg",
+                    format="svg",
+                    dpi=1000,
+                )
                 plt.show()
 
 
@@ -156,14 +166,18 @@ def plot_fairness(path, dataset):
 
                         for rep in range(NUM_REPS):
                             for client in range(NUM_CLIENTS):
-                                if not log_dict[experiment]['test_accuracy_clients'][rep][client]:
+                                if not log_dict[experiment]["test_accuracy_clients"][rep][client]:
                                     continue
 
-                                final_accuracy[client] += log_dict[experiment]['test_accuracy_clients'][rep][client][-1][1]
+                                final_accuracy[client] += log_dict[experiment]["test_accuracy_clients"][rep][client][
+                                    -1
+                                ][1]
                                 final_accuracy_count[client] += 1
 
-                        final_accuracy = [accuracy / count for accuracy, count in zip(final_accuracy, final_accuracy_count)]
-                        method_name = pickle_file.split('/')[-1].split('.')[0].replace('Fairness_', '')
+                        final_accuracy = [
+                            accuracy / count for accuracy, count in zip(final_accuracy, final_accuracy_count)
+                        ]
+                        method_name = pickle_file.split("/")[-1].split(".")[0].replace("Fairness_", "")
 
                         plt.grid(True)
                         plt.hist(final_accuracy, bins=20)
@@ -204,10 +218,10 @@ def plot_fairness_stacked_error_bar_plot(path, dataset):
 
                 for rep in range(NUM_REPS):
                     for client in range(NUM_CLIENTS):
-                        if not log_dict[experiment]['test_accuracy_clients'][rep][client]:
+                        if not log_dict[experiment]["test_accuracy_clients"][rep][client]:
                             continue
 
-                        final_accuracy[client] = log_dict[experiment]['test_accuracy_clients'][rep][client][-1][1]
+                        final_accuracy[client] = log_dict[experiment]["test_accuracy_clients"][rep][client][-1][1]
 
                     # print(method, experiment, len(final_accuracy), final_accuracy)
 
@@ -217,12 +231,12 @@ def plot_fairness_stacked_error_bar_plot(path, dataset):
 
                     entropy_runs[rep] = entropy
 
-                method_name = pickle_file.split('/')[-1].split('.')[0].replace('Fairness_', '')
+                method_name = pickle_file.split("/")[-1].split(".")[0].replace("Fairness_", "")
 
                 entropy_runs = np.array(entropy_runs)
                 final_entropy_mean_tracker[f"{method_name}-{experiment}"] = np.mean(entropy_runs, axis=0)
                 final_entropy_std_tracker[f"{method_name}-{experiment}"] = np.std(entropy_runs, axis=0)
-                final_entropy_max_tracker[f"{method_name}-{experiment}"] =  np.max(entropy_runs, axis=0)
+                final_entropy_max_tracker[f"{method_name}-{experiment}"] = np.max(entropy_runs, axis=0)
                 final_entropy_min_tracker[f"{method_name}-{experiment}"] = np.min(entropy_runs, axis=0)
 
     exp_matches = [" on IID", " on Non IID"]
