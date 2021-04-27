@@ -18,15 +18,21 @@ def plot_accuracy(path, dataset):
         for local_round in local_rounds:
             plt.figure()
             for method in methods:
-                pickle_file = glob.glob(f"{path}/{dataset}/{method}/{local_round}/*.pkl")
-                print(pickle_file)
+                pickle_files = glob.glob(f"{path}/{dataset}/{method}/{local_round}/*.pkl")
+                print(pickle_files)
 
-                with open(pickle_file[0], "rb") as file:
+                with open(pickle_files[0], "rb") as file:
                     log_dict = pickle.load(file)
 
                 for experiment in log_dict.keys():
                     if experiment.endswith(exp_match):
                         print(experiment)
+
+                        if 'Non IID' in experiment:
+                            IS_IID = 'Non_IID'
+                        else:
+                            IS_IID = 'IID'
+
                         for accuracy_profile in log_dict[experiment]["test_accuracy"]:
                             if len(accuracy_profile) < ROUNDS:
                                 accuracy_profile.extend([accuracy_profile[-1]] * (ROUNDS - len(accuracy_profile)))
@@ -52,7 +58,7 @@ def plot_accuracy(path, dataset):
 
                         plt.tight_layout()
                         plt.savefig(
-                            f"plots/local_rounds_accuracy_{experiment}_{local_round}.svg", format="svg", dpi=1000
+                            f"plots/{dataset}/Local_Rounds/Accuracy_Profile/{IS_IID}/{experiment}_{local_round}.svg", format="svg", dpi=1000
                         )
             plt.show()
 
@@ -68,10 +74,10 @@ def plot_accuracy_stacked_error_bar_plot(path, dataset):
     for local_round in local_rounds:
         plt.figure()
         for method in methods:
-            pickle_file = glob.glob(f"{path}/{dataset}/{method}/{local_round}/*.pkl")
-            print(pickle_file)
+            pickle_files = glob.glob(f"{path}/{dataset}/{method}/{local_round}/*.pkl")
+            print(pickle_files)
 
-            with open(pickle_file[0], "rb") as file:
+            with open(pickle_files[0], "rb") as file:
                 log_dict = pickle.load(file)
 
             for experiment in log_dict.keys():
@@ -95,6 +101,11 @@ def plot_accuracy_stacked_error_bar_plot(path, dataset):
             exp_matches = [" on IID", " on Non IID"]
 
             for exp_match in exp_matches:
+                if 'Non IID' in exp_match:
+                    IS_IID = 'Non_IID'
+                else:
+                    IS_IID = 'IID'
+
                 final_acc_mean_list = []
                 final_acc_std_list = []
                 final_acc_max_list = []
@@ -135,7 +146,7 @@ def plot_accuracy_stacked_error_bar_plot(path, dataset):
 
                 plt.tight_layout()
                 plt.savefig(
-                    f"plots/local_rounds_accuracy_stacked_{dataset}_{exp_match.lstrip()}_{local_round}.svg",
+                    f"plots/{dataset}/Local_Rounds/Stacked_Error_Bar/{IS_IID}/{exp_match.replace(' on ', '')}_{local_round}.svg",
                     format="svg",
                     dpi=1000,
                 )
@@ -161,6 +172,12 @@ def plot_fairness(path, dataset):
                 for experiment in log_dict.keys():
                     if experiment.endswith(exp_match):
                         print(experiment)
+
+                        if 'Non IID' in experiment:
+                            IS_IID = 'Non_IID'
+                        else:
+                            IS_IID = 'IID'
+
                         final_accuracy = [0] * NUM_CLIENTS
                         final_accuracy_count = [0] * NUM_CLIENTS
 
@@ -188,7 +205,7 @@ def plot_fairness(path, dataset):
                         plt.ylabel("Number of clients")
 
                         plt.tight_layout()
-                        plt.savefig(f"plots/fairness_histogram_{experiment}_{method_name}.svg", format="svg", dpi=1000)
+                        plt.savefig(f"plots/{dataset}/Fairness/Histograms/{IS_IID}/{experiment}_{method_name}.svg", format="svg", dpi=1000)
                 plt.show()
 
 
@@ -242,6 +259,11 @@ def plot_fairness_stacked_error_bar_plot(path, dataset):
     exp_matches = [" on IID", " on Non IID"]
 
     for exp_match in exp_matches:
+        if 'Non IID' in exp_match:
+            IS_IID = 'Non_IID'
+        else:
+            IS_IID = 'IID'
+
         final_acc_mean_list = []
         final_acc_std_list = []
         final_acc_max_list = []
@@ -274,18 +296,18 @@ def plot_fairness_stacked_error_bar_plot(path, dataset):
         plt.xticks(np.arange(len(key_list)), key_list, rotation="vertical")
         plt.title(f"{dataset} Fairness")
         plt.xlabel("Algorithms")
-        plt.ylabel("Test Accuracy")
+        plt.ylabel("Entropy")
 
         plt.tight_layout()
-        plt.savefig(f"plots/fairness_accuracy_stacked_{dataset}_{exp_match.lstrip()}.svg", format="svg", dpi=1000)
+        plt.savefig(f"plots/{dataset}/Fairness/Stacked_Error_Bar/{IS_IID}/{exp_match.replace(' on ', '')}.svg", format="svg", dpi=1000)
         plt.show()
 
 
 if __name__ == "__main__":
-    plot_accuracy("./Local_Rounds/", "MNIST")
-    plot_accuracy("./Local_Rounds/", "CIFAR")
-    plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "MNIST")
-    plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "CIFAR")
+    # plot_accuracy("./Local_Rounds/", "MNIST")
+    # plot_accuracy("./Local_Rounds/", "CIFAR")
+    # plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "MNIST")
+    # plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "CIFAR")
     plot_fairness("./Fairness/", "MNIST")
     plot_fairness("./Fairness/", "CIFAR")
     plot_fairness_stacked_error_bar_plot("./Fairness/", "MNIST")
