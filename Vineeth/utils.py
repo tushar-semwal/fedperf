@@ -14,19 +14,18 @@ def plot_accuracy(path, dataset):
 
     for local_round in local_rounds:
         plt.figure()
-        plt.grid()
-
         for method in methods:
             pickle_file = glob.glob(f"{path}/{dataset}/{method}/{local_round}/*.pkl")
             print(pickle_file)
+
             with open(pickle_file[0], "rb") as file:
                 log_dict = pickle.load(file)
 
             for experiment in log_dict.keys():
                 exp_match = " CNN on IID"
-                # exp_match = ' CNN on Non IID'
-                # exp_match = ' MLP on IID'
-                # exp_match = ' MLP on Non IID'
+                # exp_match = " CNN on Non IID"
+                # exp_match = " MLP on IID"
+                # exp_match = " MLP on Non IID"
 
                 if experiment.endswith(exp_match):
                     print(experiment)
@@ -39,6 +38,7 @@ def plot_accuracy(path, dataset):
                     mean_accuracy_profile = np.mean(accuracy_runs, axis=0)
                     std_dev_accuracy_profile = np.std(accuracy_runs, axis=0)
 
+                    plt.grid(True)
                     plt.plot(np.arange(ROUNDS), mean_accuracy_profile, label=f"{method}")
                     plt.fill_between(
                         np.arange(ROUNDS),
@@ -67,15 +67,15 @@ def plot_accuracry_stacked_errobar_plot(path, dataset):
 
     for local_round in local_rounds:
         plt.figure()
-        plt.grid()
-
         for method in methods:
             pickle_file = glob.glob(f"{path}/{dataset}/{method}/{local_round}/*.pkl")
             print(pickle_file)
+
             with open(pickle_file[0], "rb") as file:
                 log_dict = pickle.load(file)
 
             for experiment in log_dict.keys():
+                print(experiment)
                 for accuracy_profile in log_dict[experiment]["test_accuracy"]:
                     if len(accuracy_profile) < ROUNDS:
                         accuracy_profile.extend([accuracy_profile[-1]] * (ROUNDS - len(accuracy_profile)))
@@ -105,6 +105,7 @@ def plot_accuracry_stacked_errobar_plot(path, dataset):
                 final_acc_max_list.append(final_accuracy_max_tracker[key])
                 final_acc_min_list.append(final_accuracy_min_tracker[key])
 
+        plt.grid(True)
         plt.errorbar(
             np.arange(len(key_list)), np.array(final_acc_mean_list), np.array(final_acc_std_list), fmt="ok", lw=3
         )
@@ -130,8 +131,58 @@ def plot_accuracry_stacked_errobar_plot(path, dataset):
         plt.show()
 
 
+def plot_fariness(path, dataset):
+    ROUNDS = 50
+    NUM_CLIENTS = 100
+    NUM_REPS = 5
+
+    plt.figure()
+    for method in methods:
+        pickle_files = glob.glob(f"{path}/{dataset}/{method}/*.pkl")
+        print(pickle_files)
+
+        for pickle_file in pickle_files:
+            with open(pickle_file, "rb") as file:
+                log_dict = pickle.load(file)
+
+            for experiment in log_dict.keys():
+                exp_match = " CNN on IID"
+                # exp_match = " CNN on Non IID"
+                # exp_match = " MLP on IID"
+                # exp_match = " MLP on Non IID"
+
+                if experiment.endswith(exp_match):
+                    print(experiment)
+                    final_accuracy = [0] * NUM_CLIENTS
+                    final_accuracy_count = [0] * NUM_CLIENTS
+
+                    for rep in range(NUM_REPS):
+                        for client in range(NUM_CLIENTS):
+                            if not log_dict[experiment]['test_accuracy_clients'][rep][client]:
+                                continue
+
+                            final_accuracy[client] += log_dict[experiment]['test_accuracy_clients'][rep][client][-1][1]
+                            final_accuracy_count[client] += 1
+
+                    final_accuracy = [accuracy / count for accuracy, count in zip(final_accuracy, final_accuracy_count)]
+                    method_name = pickle_file.split('/')[-1].split('.')[0].replace('Fairness_', '')
+                    plt.grid(True)
+                    plt.hist(final_accuracy, bins=20)
+
+                    # plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+                    plt.title(f"{dataset} {method} Fairness")
+                    plt.xlabel("Test accuracy")
+                    plt.ylabel("Number of clients")
+
+                    plt.tight_layout()
+                    plt.savefig(f"plots/fairness_histogram_{experiment}_{method_name}.svg", format="svg", dpi=1000)
+            plt.show()
+
+
 if __name__ == "__main__":
-    plot_accuracy("./Local_Rounds/", "MNIST")
-    plot_accuracy("./Local_Rounds/", "CIFAR")
-    # plot_accuracry_stacked_errobar_plot('./Local_Rounds/', 'MNIST')
-    # plot_accuracry_stacked_errobar_plot('./Local_Rounds/', 'CIFAR')
+    # plot_accuracy("./Local_Rounds/", "MNIST")
+    # plot_accuracy("./Local_Rounds/", "CIFAR")
+    # plot_accuracry_stacked_errobar_plot("./Local_Rounds/", "MNIST")
+    # plot_accuracry_stacked_errobar_plot("./Local_Rounds/", "CIFAR")
+    plot_fariness("./Fairness/", "MNIST")
+    plot_fariness("./Fairness/", "CIFAR")
