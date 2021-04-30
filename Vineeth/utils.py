@@ -12,7 +12,7 @@ local_rounds = ["01", "05", "10", "25"]
 
 def plot_accuracy(path, dataset):
     ROUNDS = 50
-    exp_matches = [" CNN on IID", " CNN on Non IID", " MLP on IID", " MLP on Non IID"]
+    exp_matches = [" CNN on IID", " CNN on Non IID", " MLP on IID", " MLP on Non IID", " LSTM on IID", " LSTM on Non IID"]
 
     for exp_match in exp_matches:
         for local_round in local_rounds:
@@ -20,6 +20,9 @@ def plot_accuracy(path, dataset):
             for method in methods:
                 pickle_files = glob.glob(f"{path}/{dataset}/{method}/{local_round}/*.pkl")
                 print(pickle_files)
+
+                if not pickle_files:
+                    continue
 
                 with open(pickle_files[0], "rb") as file:
                     log_dict = pickle.load(file)
@@ -76,6 +79,9 @@ def plot_accuracy_stacked_error_bar_plot(path, dataset):
         for method in methods:
             pickle_files = glob.glob(f"{path}/{dataset}/{method}/{local_round}/*.pkl")
             print(pickle_files)
+
+            if not pickle_files:
+                continue
 
             with open(pickle_files[0], "rb") as file:
                 log_dict = pickle.load(file)
@@ -146,24 +152,26 @@ def plot_accuracy_stacked_error_bar_plot(path, dataset):
 
                 plt.tight_layout()
                 plt.savefig(
-                    f"plots/{dataset}/Local_Rounds/Stacked_Error_Bar/{IS_IID}/{exp_match.replace(' on ', '')}_{local_round}.svg",
+                    f"plots/{dataset}/Local_Rounds/Stacked_Error_Bar/{IS_IID}/{dataset}{exp_match}_{local_round}.svg",
                     format="svg",
                     dpi=1000,
                 )
                 plt.show()
 
 
-def plot_fairness(path, dataset):
+def plot_fairness(path, dataset, NUM_REPS):
     ROUNDS = 50
     NUM_CLIENTS = 100
-    NUM_REPS = 5
-    exp_matches = [" CNN on IID", " CNN on Non IID", " MLP on IID", " MLP on Non IID"]
+    exp_matches = [" CNN on IID", " CNN on Non IID", " MLP on IID", " MLP on Non IID", " LSTM on IID", " LSTM on Non IID"]
 
     for exp_match in exp_matches:
         plt.figure()
         for method in methods:
             pickle_files = glob.glob(f"{path}/{dataset}/{method}/*.pkl")
             print(pickle_files)
+
+            if not pickle_files:
+                continue
 
             for pickle_file in pickle_files:
                 with open(pickle_file, "rb") as file:
@@ -192,7 +200,7 @@ def plot_fairness(path, dataset):
                                 final_accuracy_count[client] += 1
 
                         final_accuracy = [
-                            accuracy / count for accuracy, count in zip(final_accuracy, final_accuracy_count)
+                            accuracy / count if count else 0 for accuracy, count in zip(final_accuracy, final_accuracy_count)
                         ]
                         method_name = pickle_file.split("/")[-1].split(".")[0].replace("Fairness_", "")
 
@@ -209,10 +217,9 @@ def plot_fairness(path, dataset):
                 plt.show()
 
 
-def plot_fairness_stacked_error_bar_plot(path, dataset):
+def plot_fairness_stacked_error_bar_plot(path, dataset, NUM_REPS):
     ROUNDS = 50
     NUM_CLIENTS = 100
-    NUM_REPS = 5
 
     final_entropy_mean_tracker = {}
     final_entropy_std_tracker = {}
@@ -223,6 +230,9 @@ def plot_fairness_stacked_error_bar_plot(path, dataset):
     for method in methods:
         pickle_files = glob.glob(f"{path}/{dataset}/{method}/*.pkl")
         print(pickle_files)
+
+        if not pickle_files:
+            continue
 
         for pickle_file in pickle_files:
             with open(pickle_file, "rb") as file:
@@ -242,7 +252,7 @@ def plot_fairness_stacked_error_bar_plot(path, dataset):
 
                     # print(method, experiment, len(final_accuracy), final_accuracy)
 
-                    histogram = np.histogram(final_accuracy, bins=100, range=(0, 100), density=True)
+                    histogram = np.histogram(final_accuracy, bins=1000, range=(0, 100), density=True)
                     data_distribution = histogram[0]
                     entropy = -(data_distribution * np.ma.log(np.abs(data_distribution))).sum()
 
@@ -299,16 +309,23 @@ def plot_fairness_stacked_error_bar_plot(path, dataset):
         plt.ylabel("Entropy")
 
         plt.tight_layout()
-        plt.savefig(f"plots/{dataset}/Fairness/Stacked_Error_Bar/{IS_IID}/{exp_match.replace(' on ', '')}.svg", format="svg", dpi=1000)
+        plt.savefig(f"plots/{dataset}/Fairness/Stacked_Error_Bar/{IS_IID}/{dataset}{exp_match}.svg", format="svg", dpi=1000)
         plt.show()
 
 
 if __name__ == "__main__":
-    # plot_accuracy("./Local_Rounds/", "MNIST")
-    # plot_accuracy("./Local_Rounds/", "CIFAR")
-    # plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "MNIST")
-    # plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "CIFAR")
-    plot_fairness("./Fairness/", "MNIST")
-    plot_fairness("./Fairness/", "CIFAR")
-    plot_fairness_stacked_error_bar_plot("./Fairness/", "MNIST")
-    plot_fairness_stacked_error_bar_plot("./Fairness/", "CIFAR")
+    plot_accuracy("./Local_Rounds/", "MNIST")
+    plot_accuracy("./Local_Rounds/", "CIFAR")
+    plot_accuracy("./Local_Rounds/", "Shakespeare")
+
+    plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "MNIST")
+    plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "CIFAR")
+    plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "Shakespeare")
+
+    plot_fairness("./Fairness/", "MNIST", 5)
+    plot_fairness("./Fairness/", "CIFAR", 5)
+    plot_fairness("./Fairness/", "Shakespeare", 2)
+
+    plot_fairness_stacked_error_bar_plot("./Fairness/", "MNIST", 5)
+    plot_fairness_stacked_error_bar_plot("./Fairness/", "CIFAR", 5)
+    plot_fairness_stacked_error_bar_plot("./Fairness/", "Shakespeare", 2)
