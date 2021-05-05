@@ -46,7 +46,7 @@ def plot_accuracy(path, dataset):
                         mean_accuracy_profile = np.mean(accuracy_runs, axis=0)
                         std_dev_accuracy_profile = np.std(accuracy_runs, axis=0)
 
-                        plt.grid(True)
+                        plt.grid(False)
                         plt.plot(np.arange(ROUNDS), mean_accuracy_profile, label=f"{method}")
                         plt.fill_between(
                             np.arange(ROUNDS),
@@ -55,8 +55,9 @@ def plot_accuracy(path, dataset):
                             alpha=0.5,
                         )
 
-                        plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-                        plt.title(f"{dataset} Local Rounds {local_round}")
+                        # plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+                        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=4, fancybox=True)
+                        plt.title(f"Local Rounds {local_round}", pad=27.5)
                         plt.xlabel("Global Communication Rounds")
                         plt.ylabel("Test Accuracy")
 
@@ -147,7 +148,7 @@ def plot_accuracy_stacked_error_bar_plot(path, dataset):
                 )
 
                 plt.xticks(np.arange(len(key_list)), key_list, rotation="vertical")
-                plt.title(f"{dataset} Local Rounds {local_round}")
+                plt.title(f"Local Rounds {local_round}")
                 plt.xlabel("Algorithms")
                 plt.ylabel("Test Accuracy")
 
@@ -209,7 +210,7 @@ def plot_fairness(path, dataset, NUM_REPS):
                         plt.hist(final_accuracy, bins=20)
 
                         # plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-                        plt.title(f"{dataset} {method} Fairness")
+                        plt.title(f"Fairness")
                         plt.xlabel("Test accuracy")
                         plt.ylabel("Number of clients")
 
@@ -325,7 +326,7 @@ def plot_fairness_stacked_error_bar_plot(path, dataset, NUM_REPS):
         )
 
         plt.xticks(np.arange(len(key_list)), key_list, rotation="vertical")
-        plt.title(f"{dataset} Fairness")
+        plt.title(f"Fairness")
         plt.xlabel("Algorithms")
         plt.ylabel("Entropy")
 
