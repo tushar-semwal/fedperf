@@ -4,6 +4,7 @@ import pickle
 import numpy as np
 import scipy.stats
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 
 methods = ["FedAvg", "FedMed", "FedProx", "qFedAvg"]
@@ -252,13 +253,21 @@ def plot_fairness_stacked_error_bar_plot(path, dataset, NUM_REPS):
 
                     # print(method, experiment, len(final_accuracy), final_accuracy)
 
-                    histogram = np.histogram(final_accuracy, bins=1000, range=(0, 100), density=True)
-                    data_distribution = histogram[0]
-                    entropy = -(data_distribution * np.ma.log(np.abs(data_distribution))).sum()
+                    # histogram = np.histogram(final_accuracy, bins=1000, range=(0, 100), density=True)
+                    # data_distribution = histogram[0]
+                    # entropy = -(data_distribution * np.ma.log(np.abs(data_distribution))).sum()
+
+                    histogram = np.asarray(np.histogram(final_accuracy, bins=1000, range=(0, 100), density=False)[0])
+                    data_distribution = histogram / histogram.sum()
+                    entropy = -(data_distribution * np.ma.log2(np.abs(data_distribution))).sum()
 
                     entropy_runs[rep] = entropy
 
                 method_name = pickle_file.split("/")[-1].split(".")[0].replace("Fairness_", "")
+
+                histogram = np.asarray([1 / histogram.shape[0] for _ in range(histogram.shape[0])])
+                data_distribution = histogram / histogram.sum()
+                max_entropy = -(data_distribution * np.ma.log2(np.abs(data_distribution))).sum()
 
                 entropy_runs = np.array(entropy_runs)
                 final_entropy_mean_tracker[f"{method_name}-{experiment}"] = np.mean(entropy_runs, axis=0)
@@ -300,6 +309,18 @@ def plot_fairness_stacked_error_bar_plot(path, dataset, NUM_REPS):
             ],
             fmt=".k",
             ecolor="black",
+            lw=1,
+        )
+
+        plt.errorbar(
+            np.arange(len(key_list)),
+            np.array([max_entropy for _ in range(len(key_list))]),
+            [
+                np.array([0 for _ in range(len(key_list))]),
+                np.array([0 for _ in range(len(key_list))]),
+            ],
+            fmt='D',
+            color="red",
             lw=1,
         )
 
