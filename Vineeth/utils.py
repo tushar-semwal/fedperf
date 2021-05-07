@@ -60,7 +60,7 @@ def plot_accuracy(path, dataset):
 
                         # plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
                         plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=4, fancybox=True)
-                        plt.title(f"Local Rounds {local_round}", pad=27.5)
+                        # plt.title(f"Local Rounds {local_round}", pad=27.5)
                         plt.xlabel("Global Communication Rounds")
                         plt.ylabel("Test Accuracy")
 
@@ -153,8 +153,8 @@ def plot_accuracy_stacked_error_bar_plot(path, dataset):
                     lw=1,
                 )
 
-                plt.xticks(np.arange(len(key_list)), key_list, rotation="vertical")
-                plt.title(f"Local Rounds {local_round}")
+                plt.xticks(np.arange(len(key_list)), key_list, rotation="45", ha='right')
+                # plt.title(f"Local Rounds {local_round}")
                 plt.xlabel("Algorithms")
                 plt.ylabel("Test Accuracy")
 
@@ -165,6 +165,123 @@ def plot_accuracy_stacked_error_bar_plot(path, dataset):
                     dpi=1000,
                 )
                 plt.show()
+
+
+
+def plot_accuracy_stacked_error_bar_multiple_plot(path, dataset):
+    ROUNDS = 50
+
+    final_accuracy_mean_tracker = {}
+    final_accuracy_std_tracker = {}
+    final_accuracy_max_tracker = {}
+    final_accuracy_min_tracker = {}
+
+    fmt_dict = {'25': "ok", '10': "ob", '05': "og", '01': "or"}
+    efmt_dict = {'25': ".k", '10': ".b", '05': ".g", '01': ".r"}
+    ecolor_dict = {'25': "black", '10': "blue", '05': "green", '01': "red"}
+    fig_dict = {" on IID": 1, " on Non IID": 2}
+
+    for local_round in local_rounds:
+        for method in methods:
+            pickle_files = glob.glob(f"{path}/{dataset}/{method}/{local_round}/*.pkl")
+            print(pickle_files)
+
+            if not pickle_files:
+                continue
+
+            with open(pickle_files[0], "rb") as file:
+                log_dict = pickle.load(file)
+
+            for experiment in log_dict.keys():
+                print(experiment)
+                for accuracy_profile in log_dict[experiment]["test_accuracy"]:
+                    if len(accuracy_profile) < ROUNDS:
+                        accuracy_profile.extend([accuracy_profile[-1]] * (ROUNDS - len(accuracy_profile)))
+
+                accuracy_runs = np.array(log_dict[experiment]["test_accuracy"])
+
+                if dataset == "Shakespeare":
+                    accuracy_runs = accuracy_runs * 100
+
+                mean_accuracy_profile = np.mean(accuracy_runs, axis=0)
+                std_dev_accuracy_profile = np.std(accuracy_runs, axis=0)
+                max_accuracy_profile = np.max(accuracy_runs, axis=0)
+                min_accuracy_profile = np.min(accuracy_runs, axis=0)
+
+                final_accuracy_mean_tracker[f"{method}-{experiment}_{local_round}"] = mean_accuracy_profile[-1]
+                final_accuracy_std_tracker[f"{method}-{experiment}_{local_round}"] = std_dev_accuracy_profile[-1]
+                final_accuracy_max_tracker[f"{method}-{experiment}_{local_round}"] = max_accuracy_profile[-1]
+                final_accuracy_min_tracker[f"{method}-{experiment}_{local_round}"] = min_accuracy_profile[-1]
+
+    exp_matches = [" on IID", " on Non IID"]
+
+    for exp_match in exp_matches:
+        for local_round in reversed(local_rounds):
+            if 'Non IID' in exp_match:
+                IS_IID = 'Non_IID'
+            else:
+                IS_IID = 'IID'
+
+            final_acc_mean_list = []
+            final_acc_std_list = []
+            final_acc_max_list = []
+            final_acc_min_list = []
+            key_list = []
+
+            for key in final_accuracy_mean_tracker:
+                if exp_match in key and key.endswith(local_round):
+                    print(key)
+                    key_list.append(key.split('_')[0].replace(f"-{dataset}", "").replace(exp_match, ""))
+                    final_acc_mean_list.append(final_accuracy_mean_tracker[key])
+                    final_acc_std_list.append(final_accuracy_std_tracker[key])
+                    final_acc_max_list.append(final_accuracy_max_tracker[key])
+                    final_acc_min_list.append(final_accuracy_min_tracker[key])
+
+                    plt.grid(True)
+
+                    if dataset == "Shakespeare":
+                        plt.errorbar(
+                            np.arange(len(key_list)),
+                            np.array(final_acc_mean_list),
+                            np.array(final_acc_std_list),
+                            fmt=fmt_dict[local_round],
+                            label=local_round if 'qFedAvg' in key and exp_match in key else None,
+                            lw=3,
+                        )
+                    else:
+                        plt.errorbar(
+                            np.arange(len(key_list)),
+                            np.array(final_acc_mean_list),
+                            np.array(final_acc_std_list),
+                            fmt=fmt_dict[local_round],
+                            label=local_round if f'qFedAvg-{dataset} CNN' in key and exp_match in key else None,
+                            lw=3,
+                        )
+                    plt.errorbar(
+                        np.arange(len(key_list)),
+                        np.array(final_acc_mean_list),
+                        [
+                            np.array(final_acc_mean_list) - np.array(final_acc_min_list),
+                            np.array(final_acc_max_list) - np.array(final_acc_mean_list),
+                        ],
+                        fmt=efmt_dict[local_round],
+                        ecolor=ecolor_dict[local_round],
+                        lw=1,
+                    )
+
+        plt.xticks(np.arange(len(key_list)), key_list, rotation="45", ha='right')
+        # plt.title(f"Local Rounds {local_round}")
+        plt.xlabel("Algorithms")
+        plt.ylabel("Test Accuracy")
+
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.125), ncol=4, fancybox=True)
+        plt.tight_layout()
+        plt.savefig(
+            f"plots/{dataset}/Local_Rounds/Stacked_Error_Bar_Multiple/{IS_IID}/{dataset}{exp_match.split('-')[0]}.svg",
+            format="svg",
+            dpi=1000,
+        )
+        plt.show()
 
 
 def plot_fairness(path, dataset, NUM_REPS):
@@ -220,7 +337,7 @@ def plot_fairness(path, dataset, NUM_REPS):
                         plt.hist(final_accuracy, bins=20)
 
                         # plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-                        plt.title(f"Fairness")
+                        # plt.title(f"Fairness")
                         plt.xlabel("Test accuracy")
                         plt.ylabel("Number of clients")
 
@@ -338,8 +455,8 @@ def plot_fairness_stacked_error_bar_plot(path, dataset, NUM_REPS):
             lw=1,
         )
 
-        plt.xticks(np.arange(len(key_list)), key_list, rotation="vertical")
-        plt.title(f"Fairness")
+        plt.xticks(np.arange(len(key_list)), key_list, rotation="45", ha='right')
+        # plt.title(f"Fairness")
         plt.xlabel("Algorithms")
         plt.ylabel("Entropy")
 
@@ -366,7 +483,7 @@ def get_fairness_histogram(path, dataset, NUM_REPS, exp_match):
 
             for experiment in log_dict.keys():
                 if experiment.endswith(exp_match):
-                    print(experiment)
+                    # print(experiment)
 
                     if 'Non IID' in experiment:
                         IS_IID = 'Non_IID'
@@ -472,6 +589,9 @@ def plot_fairness_stacked_error_bar_plot_with_distribution(path, dataset, NUM_RE
         final_acc_min_list = []
         key_list = []
         for key in final_entropy_mean_tracker:
+            if 'MLP' in key:
+                continue
+
             if key.endswith(exp_match):
                 key_list.append(key.replace(f"-{dataset}", "").replace(exp_match, ""))
                 final_acc_mean_list.append(final_entropy_mean_tracker[key])
@@ -509,9 +629,7 @@ def plot_fairness_stacked_error_bar_plot_with_distribution(path, dataset, NUM_RE
             lw=1,
         )
 
-        plt.xticks(np.arange(len(key_list)), key_list, rotation="vertical")
-
-
+        plt.xticks(np.arange(len(key_list)), key_list, rotation="45", ha='right')
 
         ax = plt.gca()
         plt.gcf().canvas.draw()
@@ -519,23 +637,25 @@ def plot_fairness_stacked_error_bar_plot_with_distribution(path, dataset, NUM_RE
 
         for i, t in enumerate(ticks):
             # print("Label ", i, ", data: ", t.get_text(), " ; ", t.get_window_extent())
-            # print(f"{method}-{dataset} {model}{exp_match}")
 
             method = t.get_text().split()[0]
             model = t.get_text().split()[1]
+
+            print(f"E {method}-{dataset} {model}{exp_match}")
             # bbox = t.get_window_extent().transformed(plt.gca().transData.inverted())
 
-            if dataset == "MNIST":
-                ax_ins  = ax.inset_axes([i * 0.064 + 0.06, 0.58, 0.05, 0.25])
-            else:
-                ax_ins  = ax.inset_axes([i * 0.1395 + 0.03, 0.55, 0.1, 0.25])
+            # if dataset == "MNIST":
+            #     ax_ins  = ax.inset_axes([i * 0.064 + 0.06, 0.58, 0.05, 0.25])
+            # else:
+            #     ax_ins  = ax.inset_axes([i * 0.1395 + 0.03, 0.55, 0.1, 0.25])
 
+            ax_ins  = ax.inset_axes([i * 0.1395 + 0.03, 0.55, 0.1, 0.25])
             ax_ins.hist(histogram_tracker[f"{method}-{dataset} {model}{exp_match}"], bins=20)
             ax_ins.set_xticks([0, 105])
             ax_ins.xaxis.set_visible(False)
             ax_ins.yaxis.set_visible(False)
 
-        plt.title(f"Fairness")
+        # plt.title(f"Fairness")
         plt.xlabel("Algorithms")
         plt.ylabel("Entropy")
 
@@ -545,22 +665,26 @@ def plot_fairness_stacked_error_bar_plot_with_distribution(path, dataset, NUM_RE
 
 
 if __name__ == "__main__":
-    plot_accuracy("./Local_Rounds/", "MNIST")
-    plot_accuracy("./Local_Rounds/", "CIFAR")
-    plot_accuracy("./Local_Rounds/", "Shakespeare")
-
-    plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "MNIST")
-    plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "CIFAR")
-    plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "Shakespeare")
-
-    plot_fairness("./Fairness/", "MNIST", 5)
-    plot_fairness("./Fairness/", "CIFAR", 5)
-    plot_fairness("./Fairness/", "Shakespeare", 2)
-
-    plot_fairness_stacked_error_bar_plot("./Fairness/", "MNIST", 5)
-    plot_fairness_stacked_error_bar_plot("./Fairness/", "CIFAR", 5)
-    plot_fairness_stacked_error_bar_plot("./Fairness/", "Shakespeare", 2)
+    # plot_accuracy("./Local_Rounds/", "MNIST")
+    # plot_accuracy("./Local_Rounds/", "CIFAR")
+    # plot_accuracy("./Local_Rounds/", "Shakespeare")
+    #
+    # plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "MNIST")
+    # plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "CIFAR")
+    # plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "Shakespeare")
+    #
+    # plot_accuracy_stacked_error_bar_multiple_plot("./Local_Rounds/", "MNIST")
+    # plot_accuracy_stacked_error_bar_multiple_plot("./Local_Rounds/", "CIFAR")
+    # plot_accuracy_stacked_error_bar_multiple_plot("./Local_Rounds/", "Shakespeare")
+    #
+    # plot_fairness("./Fairness/", "MNIST", 5)
+    # plot_fairness("./Fairness/", "CIFAR", 5)
+    # plot_fairness("./Fairness/", "Shakespeare", 2)
+    #
+    # plot_fairness_stacked_error_bar_plot("./Fairness/", "MNIST", 5)
+    # plot_fairness_stacked_error_bar_plot("./Fairness/", "CIFAR", 5)
+    # plot_fairness_stacked_error_bar_plot("./Fairness/", "Shakespeare", 2)
 
     plot_fairness_stacked_error_bar_plot_with_distribution("./Fairness/", "MNIST", 5)
-    plot_fairness_stacked_error_bar_plot_with_distribution("./Fairness/", "CIFAR", 5)
-    plot_fairness_stacked_error_bar_plot_with_distribution("./Fairness/", "Shakespeare", 2)
+    # plot_fairness_stacked_error_bar_plot_with_distribution("./Fairness/", "CIFAR", 5)
+    # plot_fairness_stacked_error_bar_plot_with_distribution("./Fairness/", "Shakespeare", 2)
