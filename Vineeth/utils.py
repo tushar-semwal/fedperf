@@ -43,6 +43,9 @@ def plot_accuracy(path, dataset):
 
                         accuracy_runs = np.array(log_dict[experiment]["test_accuracy"])
 
+                        if dataset == "Shakespeare":
+                            accuracy_runs = accuracy_runs * 100
+
                         mean_accuracy_profile = np.mean(accuracy_runs, axis=0)
                         std_dev_accuracy_profile = np.std(accuracy_runs, axis=0)
 
@@ -95,6 +98,9 @@ def plot_accuracy_stacked_error_bar_plot(path, dataset):
                         accuracy_profile.extend([accuracy_profile[-1]] * (ROUNDS - len(accuracy_profile)))
 
                 accuracy_runs = np.array(log_dict[experiment]["test_accuracy"])
+
+                if dataset == "Shakespeare":
+                    accuracy_runs = accuracy_runs * 100
 
                 mean_accuracy_profile = np.mean(accuracy_runs, axis=0)
                 std_dev_accuracy_profile = np.std(accuracy_runs, axis=0)
@@ -204,6 +210,10 @@ def plot_fairness(path, dataset, NUM_REPS):
                         final_accuracy = [
                             accuracy / count if count else 0 for accuracy, count in zip(final_accuracy, final_accuracy_count)
                         ]
+
+                        if dataset == "Shakespeare":
+                            final_accuracy = [accuracy * 100 for accuracy in final_accuracy]
+
                         method_name = pickle_file.split("/")[-1].split(".")[0].replace("Fairness_", "")
 
                         plt.grid(True)
@@ -251,6 +261,9 @@ def plot_fairness_stacked_error_bar_plot(path, dataset, NUM_REPS):
                             continue
 
                         final_accuracy[client] = log_dict[experiment]["test_accuracy_clients"][rep][client][-1][1]
+
+                    if dataset == "Shakespeare":
+                        final_accuracy = [accuracy * 100 for accuracy in final_accuracy]
 
                     # print(method, experiment, len(final_accuracy), final_accuracy)
 
@@ -335,6 +348,202 @@ def plot_fairness_stacked_error_bar_plot(path, dataset, NUM_REPS):
         plt.show()
 
 
+def get_fairness_histogram(path, dataset, NUM_REPS, exp_match):
+    ROUNDS = 50
+    NUM_CLIENTS = 100
+
+    plt.figure()
+    for method in methods:
+        pickle_files = glob.glob(f"{path}/{dataset}/{method}/*.pkl")
+        print(pickle_files)
+
+        if not pickle_files:
+            continue
+
+        for pickle_file in pickle_files:
+            with open(pickle_file, "rb") as file:
+                log_dict = pickle.load(file)
+
+            for experiment in log_dict.keys():
+                if experiment.endswith(exp_match):
+                    print(experiment)
+
+                    if 'Non IID' in experiment:
+                        IS_IID = 'Non_IID'
+                    else:
+                        IS_IID = 'IID'
+
+                    final_accuracy = [0] * NUM_CLIENTS
+                    final_accuracy_count = [0] * NUM_CLIENTS
+
+                    for rep in range(NUM_REPS):
+                        for client in range(NUM_CLIENTS):
+                            if not log_dict[experiment]["test_accuracy_clients"][rep][client]:
+                                continue
+
+                            final_accuracy[client] += log_dict[experiment]["test_accuracy_clients"][rep][client][
+                                -1
+                            ][1]
+                            final_accuracy_count[client] += 1
+
+                    final_accuracy = [
+                        accuracy / count if count else 0 for accuracy, count in zip(final_accuracy, final_accuracy_count)
+                    ]
+
+                    if dataset == "Shakespeare":
+                        final_accuracy = [accuracy * 100 for accuracy in final_accuracy]
+
+                    return final_accuracy
+
+
+def plot_fairness_stacked_error_bar_plot_with_distribution(path, dataset, NUM_REPS):
+    ROUNDS = 50
+    NUM_CLIENTS = 100
+
+    final_entropy_mean_tracker = {}
+    final_entropy_std_tracker = {}
+    final_entropy_max_tracker = {}
+    final_entropy_min_tracker = {}
+    histogram_tracker = {}
+
+    plt.figure(figsize=[20, 5])
+    for method in methods:
+        pickle_files = glob.glob(f"{path}/{dataset}/{method}/*.pkl")
+        print(pickle_files)
+
+        if not pickle_files:
+            continue
+
+        for pickle_file in pickle_files:
+            with open(pickle_file, "rb") as file:
+                log_dict = pickle.load(file)
+
+            for experiment in log_dict.keys():
+                print(experiment)
+                final_accuracy = [0] * NUM_CLIENTS
+                entropy_runs = [None] * NUM_REPS
+
+                for rep in range(NUM_REPS):
+                    for client in range(NUM_CLIENTS):
+                        if not log_dict[experiment]["test_accuracy_clients"][rep][client]:
+                            continue
+
+                        final_accuracy[client] = log_dict[experiment]["test_accuracy_clients"][rep][client][-1][1]
+
+                    if dataset == "Shakespeare":
+                        final_accuracy = [accuracy * 100 for accuracy in final_accuracy]
+
+                    # print(method, experiment, len(final_accuracy), final_accuracy)
+
+                    # histogram = np.histogram(final_accuracy, bins=1000, range=(0, 100), density=True)
+                    # data_distribution = histogram[0]
+                    # entropy = -(data_distribution * np.ma.log(np.abs(data_distribution))).sum()
+
+                    histogram = np.asarray(np.histogram(final_accuracy, bins=1000, range=(0, 100), density=False)[0])
+                    data_distribution = histogram / histogram.sum()
+                    entropy = -(data_distribution * np.ma.log2(np.abs(data_distribution))).sum()
+
+                    entropy_runs[rep] = entropy
+
+                method_name = pickle_file.split("/")[-1].split(".")[0].replace("Fairness_", "")
+
+                histogram = np.asarray([1 / histogram.shape[0] for _ in range(histogram.shape[0])])
+                data_distribution = histogram / histogram.sum()
+                max_entropy = -(data_distribution * np.ma.log2(np.abs(data_distribution))).sum()
+
+                entropy_runs = np.array(entropy_runs)
+                histogram_tracker[f"{method_name}-{experiment}"] = get_fairness_histogram(path, dataset, NUM_REPS, experiment)
+                final_entropy_mean_tracker[f"{method_name}-{experiment}"] = np.mean(entropy_runs, axis=0)
+                final_entropy_std_tracker[f"{method_name}-{experiment}"] = np.std(entropy_runs, axis=0)
+                final_entropy_max_tracker[f"{method_name}-{experiment}"] = np.max(entropy_runs, axis=0)
+                final_entropy_min_tracker[f"{method_name}-{experiment}"] = np.min(entropy_runs, axis=0)
+
+    exp_matches = [" on IID", " on Non IID"]
+
+    for exp_match in exp_matches:
+        if 'Non IID' in exp_match:
+            IS_IID = 'Non_IID'
+        else:
+            IS_IID = 'IID'
+
+        final_acc_mean_list = []
+        final_acc_std_list = []
+        final_acc_max_list = []
+        final_acc_min_list = []
+        key_list = []
+        for key in final_entropy_mean_tracker:
+            if key.endswith(exp_match):
+                key_list.append(key.replace(f"-{dataset}", "").replace(exp_match, ""))
+                final_acc_mean_list.append(final_entropy_mean_tracker[key])
+                final_acc_std_list.append(final_entropy_std_tracker[key])
+                final_acc_max_list.append(final_entropy_max_tracker[key])
+                final_acc_min_list.append(final_entropy_min_tracker[key])
+
+        plt.grid(True)
+        plt.margins(0.1)
+
+        plt.errorbar(
+            np.arange(len(key_list)), np.array(final_acc_mean_list), np.array(final_acc_std_list), fmt="ok", lw=3
+        )
+        plt.errorbar(
+            np.arange(len(key_list)),
+            np.array(final_acc_mean_list),
+            [
+                np.array(final_acc_mean_list) - np.array(final_acc_min_list),
+                np.array(final_acc_max_list) - np.array(final_acc_mean_list),
+            ],
+            fmt=".k",
+            ecolor="black",
+            lw=1,
+        )
+
+        plt.errorbar(
+            np.arange(len(key_list)),
+            np.array([max_entropy for _ in range(len(key_list))]),
+            [
+                np.array([0 for _ in range(len(key_list))]),
+                np.array([0 for _ in range(len(key_list))]),
+            ],
+            fmt='D',
+            color="red",
+            lw=1,
+        )
+
+        plt.xticks(np.arange(len(key_list)), key_list, rotation="vertical")
+
+
+
+        ax = plt.gca()
+        plt.gcf().canvas.draw()
+        ticks = [tick for tick in plt.gca().get_xticklabels()]
+
+        for i, t in enumerate(ticks):
+            # print("Label ", i, ", data: ", t.get_text(), " ; ", t.get_window_extent())
+            # print(f"{method}-{dataset} {model}{exp_match}")
+
+            method = t.get_text().split()[0]
+            model = t.get_text().split()[1]
+            # bbox = t.get_window_extent().transformed(plt.gca().transData.inverted())
+
+            if dataset == "MNIST":
+                ax_ins  = ax.inset_axes([i * 0.064 + 0.06, 0.58, 0.05, 0.25])
+            else:
+                ax_ins  = ax.inset_axes([i * 0.1395 + 0.03, 0.55, 0.1, 0.25])
+
+            ax_ins.hist(histogram_tracker[f"{method}-{dataset} {model}{exp_match}"], bins=20)
+            ax_ins.set_xticks([0, 105])
+            ax_ins.xaxis.set_visible(False)
+            ax_ins.yaxis.set_visible(False)
+
+        plt.title(f"Fairness")
+        plt.xlabel("Algorithms")
+        plt.ylabel("Entropy")
+
+        plt.tight_layout()
+        plt.savefig(f"plots/{dataset}/Fairness/Stacked_Error_Bar_With_Dist/{IS_IID}/{dataset}{exp_match}.svg", format="svg", dpi=1000)
+        plt.show()
+
+
 if __name__ == "__main__":
     plot_accuracy("./Local_Rounds/", "MNIST")
     plot_accuracy("./Local_Rounds/", "CIFAR")
@@ -351,3 +560,7 @@ if __name__ == "__main__":
     plot_fairness_stacked_error_bar_plot("./Fairness/", "MNIST", 5)
     plot_fairness_stacked_error_bar_plot("./Fairness/", "CIFAR", 5)
     plot_fairness_stacked_error_bar_plot("./Fairness/", "Shakespeare", 2)
+
+    plot_fairness_stacked_error_bar_plot_with_distribution("./Fairness/", "MNIST", 5)
+    plot_fairness_stacked_error_bar_plot_with_distribution("./Fairness/", "CIFAR", 5)
+    plot_fairness_stacked_error_bar_plot_with_distribution("./Fairness/", "Shakespeare", 2)
