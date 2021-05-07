@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 import matplotlib.pyplot as plt
-plt.rcParams.update({'font.size': 15})
+
+plt.rcParams.update({"font.size": 15})
 
 
 methods = ["FedAvg", "FedMed", "FedProx", "qFedAvg"]
@@ -16,7 +17,14 @@ local_rounds = ["01", "05", "10", "25"]
 
 def plot_accuracy(path, dataset):
     ROUNDS = 50
-    exp_matches = [" CNN on IID", " CNN on Non IID", " MLP on IID", " MLP on Non IID", " LSTM on IID", " LSTM on Non IID"]
+    exp_matches = [
+        " CNN on IID",
+        " CNN on Non IID",
+        " MLP on IID",
+        " MLP on Non IID",
+        " LSTM on IID",
+        " LSTM on Non IID",
+    ]
 
     for exp_match in exp_matches:
         for local_round in local_rounds:
@@ -35,10 +43,10 @@ def plot_accuracy(path, dataset):
                     if experiment.endswith(exp_match):
                         print(experiment)
 
-                        if 'Non IID' in experiment:
-                            IS_IID = 'Non_IID'
+                        if "Non IID" in experiment:
+                            IS_IID = "Non_IID"
                         else:
-                            IS_IID = 'IID'
+                            IS_IID = "IID"
 
                         for accuracy_profile in log_dict[experiment]["test_accuracy"]:
                             if len(accuracy_profile) < ROUNDS:
@@ -61,14 +69,16 @@ def plot_accuracy(path, dataset):
                             alpha=0.5,
                         )
 
-                        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=4, fancybox=True)
+                        plt.legend(loc="upper center", bbox_to_anchor=(0.5, 1.15), ncol=4, fancybox=True)
                         # plt.title(f"Local Rounds {local_round}", pad=27.5)
                         plt.xlabel("Global Communication Rounds")
                         plt.ylabel("Test Accuracy")
 
                         plt.tight_layout()
                         plt.savefig(
-                            f"plots/{dataset}/Local_Rounds/Accuracy_Profile/{IS_IID}/{experiment}_{local_round}.svg", format="svg", dpi=1000
+                            f"plots/{dataset}/Local_Rounds/Accuracy_Profile/{IS_IID}/{experiment}_{local_round}.svg",
+                            format="svg",
+                            dpi=1000,
                         )
             plt.show()
 
@@ -117,10 +127,10 @@ def plot_accuracy_stacked_error_bar_plot(path, dataset):
             exp_matches = [" on IID", " on Non IID"]
 
             for exp_match in exp_matches:
-                if 'Non IID' in exp_match:
-                    IS_IID = 'Non_IID'
+                if "Non IID" in exp_match:
+                    IS_IID = "Non_IID"
                 else:
-                    IS_IID = 'IID'
+                    IS_IID = "IID"
 
                 final_acc_mean_list = []
                 final_acc_std_list = []
@@ -155,7 +165,7 @@ def plot_accuracy_stacked_error_bar_plot(path, dataset):
                     lw=1,
                 )
 
-                plt.xticks(np.arange(len(key_list)), key_list, rotation="45", ha='right')
+                plt.xticks(np.arange(len(key_list)), key_list, rotation="45", ha="right")
                 # plt.title(f"Local Rounds {local_round}")
                 plt.xlabel("Algorithms")
                 plt.ylabel("Test Accuracy")
@@ -170,7 +180,6 @@ def plot_accuracy_stacked_error_bar_plot(path, dataset):
                 plt.show()
 
 
-
 def plot_accuracy_stacked_error_bar_multiple_plot(path, dataset):
     ROUNDS = 50
 
@@ -179,9 +188,9 @@ def plot_accuracy_stacked_error_bar_multiple_plot(path, dataset):
     final_accuracy_max_tracker = {}
     final_accuracy_min_tracker = {}
 
-    fmt_dict = {'25': "ok", '10': "ob", '05': "og", '01': "or"}
-    efmt_dict = {'25': ".k", '10': ".b", '05': ".g", '01': ".r"}
-    ecolor_dict = {'25': "black", '10': "blue", '05': "green", '01': "red"}
+    fmt_dict = {"25": "ok", "10": "ob", "05": "og", "01": "or"}
+    efmt_dict = {"25": ".k", "10": ".b", "05": ".g", "01": ".r"}
+    ecolor_dict = {"25": "black", "10": "blue", "05": "green", "01": "red"}
     fig_dict = {" on IID": 1, " on Non IID": 2}
 
     for local_round in local_rounds:
@@ -221,10 +230,10 @@ def plot_accuracy_stacked_error_bar_multiple_plot(path, dataset):
     for exp_match in exp_matches:
         plt.figure(figsize=[8, 6])
         for local_round in local_rounds:
-            if 'Non IID' in exp_match:
-                IS_IID = 'Non_IID'
+            if "Non IID" in exp_match:
+                IS_IID = "Non_IID"
             else:
-                IS_IID = 'IID'
+                IS_IID = "IID"
 
             final_acc_mean_list = []
             final_acc_std_list = []
@@ -234,7 +243,7 @@ def plot_accuracy_stacked_error_bar_multiple_plot(path, dataset):
 
             for key in final_accuracy_mean_tracker:
                 if exp_match in key and key.endswith(local_round):
-                    key_list.append(key.split('_')[0].replace(f"-{dataset}", "").replace(exp_match, ""))
+                    key_list.append(key.split("_")[0].replace(f"-{dataset}", "").replace(exp_match, ""))
                     final_acc_mean_list.append(final_accuracy_mean_tracker[key])
                     final_acc_std_list.append(final_accuracy_std_tracker[key])
                     final_acc_max_list.append(final_accuracy_max_tracker[key])
@@ -248,7 +257,7 @@ def plot_accuracy_stacked_error_bar_multiple_plot(path, dataset):
                             np.array(final_acc_mean_list),
                             np.array(final_acc_std_list),
                             fmt=fmt_dict[local_round],
-                            label=int(local_round) if 'qFedAvg' in key and exp_match in key else None,
+                            label=int(local_round) if "qFedAvg" in key and exp_match in key else None,
                             lw=3,
                         )
                     else:
@@ -257,7 +266,7 @@ def plot_accuracy_stacked_error_bar_multiple_plot(path, dataset):
                             np.array(final_acc_mean_list),
                             np.array(final_acc_std_list),
                             fmt=fmt_dict[local_round],
-                            label=int(local_round) if f'qFedAvg-{dataset} CNN' in key and exp_match in key else None,
+                            label=int(local_round) if f"qFedAvg-{dataset} CNN" in key and exp_match in key else None,
                             lw=3,
                         )
                     plt.errorbar(
@@ -272,13 +281,13 @@ def plot_accuracy_stacked_error_bar_multiple_plot(path, dataset):
                         lw=1,
                     )
 
-                    plt.xticks(np.arange(len(key_list)), key_list, rotation="45", ha='right')
+                    plt.xticks(np.arange(len(key_list)), key_list, rotation="45", ha="right")
                     # plt.title(f"Local Rounds {local_round}")
                     plt.xlabel("Algorithms")
                     plt.ylabel("Test Accuracy")
 
         plt.margins(0.1)
-        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=4, fancybox=True)
+        plt.legend(loc="upper center", bbox_to_anchor=(0.5, 1.15), ncol=4, fancybox=True)
         plt.tight_layout()
         plt.savefig(
             f"plots/{dataset}/Local_Rounds/Stacked_Error_Bar_Multiple/{IS_IID}/{dataset}{exp_match.split('-')[0]}.svg",
@@ -291,7 +300,14 @@ def plot_accuracy_stacked_error_bar_multiple_plot(path, dataset):
 def plot_fairness(path, dataset, NUM_REPS):
     ROUNDS = 50
     NUM_CLIENTS = 100
-    exp_matches = [" CNN on IID", " CNN on Non IID", " MLP on IID", " MLP on Non IID", " LSTM on IID", " LSTM on Non IID"]
+    exp_matches = [
+        " CNN on IID",
+        " CNN on Non IID",
+        " MLP on IID",
+        " MLP on Non IID",
+        " LSTM on IID",
+        " LSTM on Non IID",
+    ]
 
     for exp_match in exp_matches:
         plt.figure(figsize=[8, 6])
@@ -310,10 +326,10 @@ def plot_fairness(path, dataset, NUM_REPS):
                     if experiment.endswith(exp_match):
                         print(experiment)
 
-                        if 'Non IID' in experiment:
-                            IS_IID = 'Non_IID'
+                        if "Non IID" in experiment:
+                            IS_IID = "Non_IID"
                         else:
-                            IS_IID = 'IID'
+                            IS_IID = "IID"
 
                         final_accuracy = [0] * NUM_CLIENTS
                         final_accuracy_count = [0] * NUM_CLIENTS
@@ -329,7 +345,8 @@ def plot_fairness(path, dataset, NUM_REPS):
                                 final_accuracy_count[client] += 1
 
                         final_accuracy = [
-                            accuracy / count if count else 0 for accuracy, count in zip(final_accuracy, final_accuracy_count)
+                            accuracy / count if count else 0
+                            for accuracy, count in zip(final_accuracy, final_accuracy_count)
                         ]
 
                         if dataset == "Shakespeare":
@@ -345,7 +362,11 @@ def plot_fairness(path, dataset, NUM_REPS):
                         plt.ylabel("Number of clients")
 
                         plt.tight_layout()
-                        plt.savefig(f"plots/{dataset}/Fairness/Histograms/{IS_IID}/{experiment}_{method_name}.svg", format="svg", dpi=1000)
+                        plt.savefig(
+                            f"plots/{dataset}/Fairness/Histograms/{IS_IID}/{experiment}_{method_name}.svg",
+                            format="svg",
+                            dpi=1000,
+                        )
                 plt.show()
 
 
@@ -412,10 +433,10 @@ def plot_fairness_stacked_error_bar_plot(path, dataset, NUM_REPS):
 
     for exp_match in exp_matches:
         plt.figure(figsize=[8, 6])
-        if 'Non IID' in exp_match:
-            IS_IID = 'Non_IID'
+        if "Non IID" in exp_match:
+            IS_IID = "Non_IID"
         else:
-            IS_IID = 'IID'
+            IS_IID = "IID"
 
         final_acc_mean_list = []
         final_acc_std_list = []
@@ -427,7 +448,12 @@ def plot_fairness_stacked_error_bar_plot(path, dataset, NUM_REPS):
                 continue
 
             if key.endswith(exp_match):
-                key_list.append(key.replace(f"-{dataset}", "").replace(exp_match, "").replace("uniform", "u").replace("weighted", "w"))
+                key_list.append(
+                    key.replace(f"-{dataset}", "")
+                    .replace(exp_match, "")
+                    .replace("uniform", "u")
+                    .replace("weighted", "w")
+                )
                 final_acc_mean_list.append(final_entropy_mean_tracker[key])
                 final_acc_std_list.append(final_entropy_std_tracker[key])
                 final_acc_max_list.append(final_entropy_max_tracker[key])
@@ -456,18 +482,20 @@ def plot_fairness_stacked_error_bar_plot(path, dataset, NUM_REPS):
                 np.array([0 for _ in range(len(key_list))]),
                 np.array([0 for _ in range(len(key_list))]),
             ],
-            fmt='D',
+            fmt="D",
             color="red",
             lw=1,
         )
 
-        plt.xticks(np.arange(len(key_list)), key_list, rotation="45", ha='right')
+        plt.xticks(np.arange(len(key_list)), key_list, rotation="45", ha="right")
         # plt.title(f"Fairness")
         plt.xlabel("Algorithms")
         plt.ylabel("Entropy")
 
         plt.tight_layout()
-        plt.savefig(f"plots/{dataset}/Fairness/Stacked_Error_Bar/{IS_IID}/{dataset}{exp_match}.svg", format="svg", dpi=1000)
+        plt.savefig(
+            f"plots/{dataset}/Fairness/Stacked_Error_Bar/{IS_IID}/{dataset}{exp_match}.svg", format="svg", dpi=1000
+        )
         plt.show()
 
 
@@ -475,8 +503,8 @@ def get_fairness_histogram(path, dataset, NUM_REPS, exp_match):
     ROUNDS = 50
     NUM_CLIENTS = 100
 
-    method_match = exp_match.split('-')[0].split('_')[0]
-    method_exp_match = exp_match.split('-')[0]
+    method_match = exp_match.split("-")[0].split("_")[0]
+    method_exp_match = exp_match.split("-")[0]
 
     for method in methods:
         if method != method_match:
@@ -507,13 +535,12 @@ def get_fairness_histogram(path, dataset, NUM_REPS, exp_match):
                             if not log_dict[experiment]["test_accuracy_clients"][rep][client]:
                                 continue
 
-                            final_accuracy[client] += log_dict[experiment]["test_accuracy_clients"][rep][client][
-                                -1
-                            ][1]
+                            final_accuracy[client] += log_dict[experiment]["test_accuracy_clients"][rep][client][-1][1]
                             final_accuracy_count[client] += 1
 
                     final_accuracy = [
-                        accuracy / count if count else 0 for accuracy, count in zip(final_accuracy, final_accuracy_count)
+                        accuracy / count if count else 0
+                        for accuracy, count in zip(final_accuracy, final_accuracy_count)
                     ]
 
                     if dataset == "Shakespeare":
@@ -579,7 +606,9 @@ def plot_fairness_stacked_error_bar_plot_with_distribution(path, dataset, NUM_RE
                 entropy_runs = np.array(entropy_runs)
 
                 method_name_shorted = method_name.replace("uniform", "u").replace("weighted", "w")
-                histogram_tracker[f"{method_name_shorted}-{experiment}"] = get_fairness_histogram(path, dataset, NUM_REPS, f"{method_name}-{experiment}")
+                histogram_tracker[f"{method_name_shorted}-{experiment}"] = get_fairness_histogram(
+                    path, dataset, NUM_REPS, f"{method_name}-{experiment}"
+                )
                 final_entropy_mean_tracker[f"{method_name_shorted}-{experiment}"] = np.mean(entropy_runs, axis=0)
                 final_entropy_std_tracker[f"{method_name_shorted}-{experiment}"] = np.std(entropy_runs, axis=0)
                 final_entropy_max_tracker[f"{method_name_shorted}-{experiment}"] = np.max(entropy_runs, axis=0)
@@ -589,10 +618,10 @@ def plot_fairness_stacked_error_bar_plot_with_distribution(path, dataset, NUM_RE
 
     for exp_match in exp_matches:
         plt.figure(figsize=[8, 6])
-        if 'Non IID' in exp_match:
-            IS_IID = 'Non_IID'
+        if "Non IID" in exp_match:
+            IS_IID = "Non_IID"
         else:
-            IS_IID = 'IID'
+            IS_IID = "IID"
 
         final_acc_mean_list = []
         final_acc_std_list = []
@@ -600,13 +629,16 @@ def plot_fairness_stacked_error_bar_plot_with_distribution(path, dataset, NUM_RE
         final_acc_min_list = []
         key_list = []
         for key in final_entropy_mean_tracker:
-            if 'MLP' in key:
+            if "MLP" in key:
                 continue
 
             if key.endswith(exp_match):
                 key_list.append(
-                    key.replace(f"-{dataset}", "").replace(exp_match, "").replace("uniform", "u").replace("weighted",
-                                                                                                          "w"))
+                    key.replace(f"-{dataset}", "")
+                    .replace(exp_match, "")
+                    .replace("uniform", "u")
+                    .replace("weighted", "w")
+                )
                 final_acc_mean_list.append(final_entropy_mean_tracker[key])
                 final_acc_std_list.append(final_entropy_std_tracker[key])
                 final_acc_max_list.append(final_entropy_max_tracker[key])
@@ -637,12 +669,12 @@ def plot_fairness_stacked_error_bar_plot_with_distribution(path, dataset, NUM_RE
                 np.array([0 for _ in range(len(key_list))]),
                 np.array([0 for _ in range(len(key_list))]),
             ],
-            fmt='D',
+            fmt="D",
             color="red",
             lw=1,
         )
 
-        plt.xticks(np.arange(len(key_list)), key_list, rotation="45", ha='right')
+        plt.xticks(np.arange(len(key_list)), key_list, rotation="45", ha="right")
 
         ax = plt.gca()
         plt.gcf().canvas.draw()
@@ -660,7 +692,7 @@ def plot_fairness_stacked_error_bar_plot_with_distribution(path, dataset, NUM_RE
             #     ax_ins  = ax.inset_axes([i * 0.1395 + 0.03, 0.55, 0.1, 0.25])
 
             # print(histogram_tracker[f"{method}-{dataset} {model}{exp_match}"])
-            ax_ins  = ax.inset_axes([i * 0.1395 + 0.03, 0.55, 0.1, 0.25])
+            ax_ins = ax.inset_axes([i * 0.1395 + 0.03, 0.55, 0.1, 0.25])
             ax_ins.hist(histogram_tracker[f"{method}-{dataset} {model}{exp_match}"], bins=25)
             # ax_ins.set_xticks([0, 100])
             ax_ins.xaxis.set_visible(False)
@@ -671,7 +703,11 @@ def plot_fairness_stacked_error_bar_plot_with_distribution(path, dataset, NUM_RE
         plt.ylabel("Entropy")
 
         plt.tight_layout()
-        plt.savefig(f"plots/{dataset}/Fairness/Stacked_Error_Bar_With_Dist/{IS_IID}/{dataset}{exp_match}.svg", format="svg", dpi=1000)
+        plt.savefig(
+            f"plots/{dataset}/Fairness/Stacked_Error_Bar_With_Dist/{IS_IID}/{dataset}{exp_match}.svg",
+            format="svg",
+            dpi=1000,
+        )
         plt.show()
 
 
