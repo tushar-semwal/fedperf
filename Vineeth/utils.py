@@ -4,9 +4,13 @@ import pickle
 import numpy as np
 import scipy.stats
 import matplotlib.pyplot as plt
+from matplotlib.patches import Circle, RegularPolygon
+from matplotlib.path import Path
+from matplotlib.projections.polar import PolarAxes
+from matplotlib.projections import register_projection
+from matplotlib.spines import Spine
+from matplotlib.transforms import Affine2D
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-
-import matplotlib.pyplot as plt
 
 plt.rcParams.update({"font.size": 15})
 
@@ -458,6 +462,7 @@ def plot_fairness_stacked_error_bar_plot(path, dataset, NUM_REPS):
                 final_acc_std_list.append(final_entropy_std_tracker[key])
                 final_acc_max_list.append(final_entropy_max_tracker[key])
                 final_acc_min_list.append(final_entropy_min_tracker[key])
+                # print(key, final_entropy_mean_tracker[key])
 
         plt.grid(True)
         plt.errorbar(
@@ -694,7 +699,7 @@ def plot_fairness_stacked_error_bar_plot_with_distribution(path, dataset, NUM_RE
             # print(histogram_tracker[f"{method}-{dataset} {model}{exp_match}"])
             ax_ins = ax.inset_axes([i * 0.1395 + 0.03, 0.55, 0.1, 0.25])
             ax_ins.hist(histogram_tracker[f"{method}-{dataset} {model}{exp_match}"], bins=25)
-            # ax_ins.set_xticks([0, 100])
+            ax_ins.set_xticks([0, 100])
             ax_ins.xaxis.set_visible(False)
             ax_ins.yaxis.set_visible(False)
 
@@ -711,27 +716,159 @@ def plot_fairness_stacked_error_bar_plot_with_distribution(path, dataset, NUM_RE
         plt.show()
 
 
+def radar_factory(num_vars, frame='circle'):
+    # calculate evenly-spaced axis angles
+    theta = np.linspace(0, 2*np.pi, num_vars, endpoint=False)
+
+    class RadarAxes(PolarAxes):
+
+        name = 'radar'
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            # rotate plot such that the first axis is at the top
+            self.set_theta_zero_location('N')
+
+        def fill(self, *args, closed=True, **kwargs):
+            """Override fill so that line is closed by default"""
+            return super().fill(closed=closed, *args, **kwargs)
+
+        def plot(self, *args, **kwargs):
+            """Override plot so that line is closed by default"""
+            lines = super().plot(*args, **kwargs)
+            for line in lines:
+                self._close_line(line)
+
+        def _close_line(self, line):
+            x, y = line.get_data()
+            # FIXME: markers at x[0], y[0] get doubled-up
+            if x[0] != x[-1]:
+                x = np.concatenate((x, [x[0]]))
+                y = np.concatenate((y, [y[0]]))
+                line.set_data(x, y)
+
+        def set_varlabels(self, labels):
+            self.set_thetagrids(np.degrees(theta), labels)
+
+        def _gen_axes_patch(self):
+            # The Axes patch must be centered at (0.5, 0.5) and of radius 0.5
+            # in axes coordinates.
+            if frame == 'circle':
+                return Circle((0.5, 0.5), 0.5)
+            elif frame == 'polygon':
+                return RegularPolygon((0.5, 0.5), num_vars,
+                                      radius=.5, edgecolor="k")
+            else:
+                raise ValueError("unknown value for 'frame': %s" % frame)
+
+        def draw(self, renderer):
+            """ Draw. If frame is polygon, make gridlines polygon-shaped """
+            # if frame == 'polygon':
+            #     gridlines = self.yaxis.get_gridlines()
+            #     for gl in gridlines:
+            #         gl.get_path()._interpolation_steps = num_vars
+            super().draw(renderer)
+
+
+        def _gen_axes_spines(self):
+            if frame == 'circle':
+                return super()._gen_axes_spines()
+            elif frame == 'polygon':
+                # spine_type must be 'left'/'right'/'top'/'bottom'/'circle'.
+                spine = Spine(axes=self,
+                              spine_type='circle',
+                              path=Path.unit_regular_polygon(num_vars))
+                # unit_regular_polygon gives a polygon of radius 1 centered at
+                # (0, 0) but we want a polygon of radius 0.5 centered at (0.5,
+                # 0.5) in axes coordinates.
+                spine.set_transform(Affine2D().scale(.5).translate(.5, .5)
+                                    + self.transAxes)
+
+
+                return {'polar': spine}
+            else:
+                raise ValueError("unknown value for 'frame': %s" % frame)
+
+    register_projection(RadarAxes)
+    return theta
+
+
+def plot_radar_graph():
+    # data = [['Fairness', 'Stragglers', 'Robustness',],
+    #         ('MNIST', [
+    #             [0.398, 0.66, 0.51,],
+    #             [0.388, 0.8, 0.93,],
+    #             [0.3972, 0.8, 0.51,],
+    #             [0.57655, 0.77, 0.33,]
+    #             ])]
+
+    data = [['Fairness', 'Stragglers', 'Robustness',],
+            ('Shakespeare', [
+                [0.4757, 0.37, 0.15,],
+                [0.6064, 0.43, 0.44,],
+                [0.4673, 0.47, 0,],
+                [0.5788, 0.48, 0.11,]
+                ])]
+
+    N = len(data[0])
+    theta = radar_factory(N, frame='circle')
+
+    spoke_labels = data.pop(0)
+    title, case_data = data[0]
+
+    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(projection='radar'))
+    fig.subplots_adjust(top=0.85, bottom=0.05)
+
+    ax.set_rlabel_position(-45)
+    ax.set_rgrids([0.2, 0.4, 0.6, 0.8, 1.0])
+    # ax.set_title(title, position=(0.5, 1.1), ha='center')
+    ax.tick_params(rotation='auto')
+
+    colors = ['b', 'r', 'g', 'm', 'y']
+    for d, color in zip(case_data, colors):
+        line = ax.plot(theta, d, color)
+        ax.fill(theta, d, facecolor=color, alpha=0.25)
+    ax.set_varlabels(spoke_labels)
+
+    plt.margins(0.1)
+
+    labels = ('FedAvg', 'FedMed', 'FedProx', 'qFedAvg')
+    legend = ax.legend(labels, loc=(0.9, .95),
+                              labelspacing=0.1, fontsize='small')
+
+    plt.tight_layout()
+    plt.savefig(
+        f"plots/{title}/Spider_Graph/Non_IID/spider_graph.svg",
+        format="svg",
+        dpi=1000,
+    )
+    plt.show()
+
+
+
 if __name__ == "__main__":
-    plot_accuracy("./Local_Rounds/", "MNIST")
-    plot_accuracy("./Local_Rounds/", "CIFAR")
-    plot_accuracy("./Local_Rounds/", "Shakespeare")
+    # plot_accuracy("./Local_Rounds/", "MNIST")
+    # plot_accuracy("./Local_Rounds/", "CIFAR")
+    # plot_accuracy("./Local_Rounds/", "Shakespeare")
+    #
+    # plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "MNIST")
+    # plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "CIFAR")
+    # plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "Shakespeare")
+    #
+    # plot_accuracy_stacked_error_bar_multiple_plot("./Local_Rounds/", "MNIST")
+    # plot_accuracy_stacked_error_bar_multiple_plot("./Local_Rounds/", "CIFAR")
+    # plot_accuracy_stacked_error_bar_multiple_plot("./Local_Rounds/", "Shakespeare")
+    #
+    # plot_fairness("./Fairness/", "MNIST", 5)
+    # plot_fairness("./Fairness/", "CIFAR", 5)
+    # plot_fairness("./Fairness/", "Shakespeare", 2)
+    #
+    # plot_fairness_stacked_error_bar_plot("./Fairness/", "MNIST", 5)
+    # plot_fairness_stacked_error_bar_plot("./Fairness/", "CIFAR", 5)
+    # plot_fairness_stacked_error_bar_plot("./Fairness/", "Shakespeare", 2)
+    #
+    # plot_fairness_stacked_error_bar_plot_with_distribution("./Fairness/", "MNIST", 5)
+    # plot_fairness_stacked_error_bar_plot_with_distribution("./Fairness/", "CIFAR", 5)
+    # plot_fairness_stacked_error_bar_plot_with_distribution("./Fairness/", "Shakespeare", 2)
 
-    plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "MNIST")
-    plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "CIFAR")
-    plot_accuracy_stacked_error_bar_plot("./Local_Rounds/", "Shakespeare")
-
-    plot_accuracy_stacked_error_bar_multiple_plot("./Local_Rounds/", "MNIST")
-    plot_accuracy_stacked_error_bar_multiple_plot("./Local_Rounds/", "CIFAR")
-    plot_accuracy_stacked_error_bar_multiple_plot("./Local_Rounds/", "Shakespeare")
-
-    plot_fairness("./Fairness/", "MNIST", 5)
-    plot_fairness("./Fairness/", "CIFAR", 5)
-    plot_fairness("./Fairness/", "Shakespeare", 2)
-
-    plot_fairness_stacked_error_bar_plot("./Fairness/", "MNIST", 5)
-    plot_fairness_stacked_error_bar_plot("./Fairness/", "CIFAR", 5)
-    plot_fairness_stacked_error_bar_plot("./Fairness/", "Shakespeare", 2)
-
-    plot_fairness_stacked_error_bar_plot_with_distribution("./Fairness/", "MNIST", 5)
-    plot_fairness_stacked_error_bar_plot_with_distribution("./Fairness/", "CIFAR", 5)
-    plot_fairness_stacked_error_bar_plot_with_distribution("./Fairness/", "Shakespeare", 2)
+    plot_radar_graph()
