@@ -9,7 +9,10 @@ Repository for Preregister workshop paper: FedPerf
     - Algorithm
       - experiment_id
         - *.pkl
-        - *.png|svg
+        - individual results : *.png|svg
+        - experiments.ipynb    
       - algorithm.ipynb
     - results
-      - plot.ipynb 
+      - overall comparison: *.png/svg
+    - plot.ipynb
+     
